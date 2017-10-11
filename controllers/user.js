@@ -23,6 +23,7 @@ var User = sequelize.define('user', {
     status: Sequelize.INTEGER(11),
     org: Sequelize.STRING(11),
     password: Sequelize.STRING(11),
+    createTime:Sequelize.STRING(11)
 }, {
         timestamps: false
     });
@@ -48,9 +49,10 @@ var User = sequelize.define('user', {
 //获取status 1 的用户
  let getStatus1 = async (ctx,next) => {
      try {
+         var [id,value] = url.parse(ctx.request.url).query.split('=')
          let users = await User.findAll({
              where: {
-                 status : 1
+                 id : value
              }
          })
          users.forEach(function(element) {
