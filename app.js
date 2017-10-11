@@ -23,6 +23,8 @@ app.use(bodyParser())
 
 
 router.get('/user/all/',userCtrl.getStatus1)
+router.post('/user/login/',userCtrl.login)
+
 router.post('/chat/send/',chatCtrl.sendMsg)
 
 

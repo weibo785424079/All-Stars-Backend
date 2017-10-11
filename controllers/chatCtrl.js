@@ -32,11 +32,9 @@ let sendMsg = async (ctx ,next) => {
         let username = ctx.request.body.username || ''
         let content = ctx.request.body.content || ''
         let target = ctx.request.body.target || ''
-        console.log('sendMsg: '+ctx.request.body)
 
         if (username&&content) {
             const now = Date.now()
-            console.log(now)
             let msg = await Msg.create({
                 author: username,
                 content: encodeURIComponent(content),
