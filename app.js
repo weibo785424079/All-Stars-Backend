@@ -26,13 +26,14 @@ router.get('/user/all/',userCtrl.getStatus1)
 router.post('/user/login/',userCtrl.login)
 
 router.post('/chat/send/',chatCtrl.sendMsg)
+router.get('/chat/allmsg/',chatCtrl.getAllMsg)
 
 
 app.use(router.routes())
 
 let server =  app.listen(3000)
 
-
+console.log(server)
 const wsServer = new WebSocketServer({server})
 
 wsServer.on('connection', (ws) => {

@@ -21,6 +21,7 @@ var Msg = sequelize.define('msg', {
     author: Sequelize.TEXT('tiny'),
     content: Sequelize.INTEGER(11),
     status: Sequelize.INTEGER(11),
+    target: Sequelize.TEXT,
     createTime:Sequelize.DATE
 }, {
         timestamps: false
@@ -29,14 +30,14 @@ var Msg = sequelize.define('msg', {
 //发送消息
 let sendMsg = async (ctx ,next) => {
     try {
-        let username = ctx.request.body.username || ''
         let content = ctx.request.body.content || ''
+        let author = ctx.request.body.author || ''
         let target = ctx.request.body.target || ''
 
-        if (username&&content) {
+        if (author&&content) {
             const now = Date.now()
             let msg = await Msg.create({
-                author: username,
+                author,
                 content: encodeURIComponent(content),
                 status: 0,
                 createTime: now,
@@ -59,9 +60,6 @@ let sendMsg = async (ctx ,next) => {
                 message: '传入参数不正确'
             }
         }
-
-
-
     }catch(err) {
         console.log(err)
         ctx.response.type = 'json'
@@ -71,7 +69,43 @@ let sendMsg = async (ctx ,next) => {
         }
     }
 }
+//发送消息
+let getAllMsg = async (ctx ,next) => {
+    try {
+            let msg = await Msg.findAll({
+                   status: 0,
+            })
+            if (msg&&msg.length) {
+                for (let item of msg) {
+                    item.content = decodeURIComponent(item.content)
+                }
+                ctx.response.type = 'json'
+                ctx.response.body = {
+                  status: 200,
+                  message: 'successfully',
+                  data: {
+                    msg
+                  }
+                }
+        } else {
+            //传入参数有误
+            ctx.response.type = 'json'
+            ctx.response.body = {
+                status: 400,
+                message: '没有查询到数据'
+            }
+        }
+    }catch(err) {
+        console.log(err)
+        ctx.response.type = 'json'
+        ctx.response.body = {
+            status: 400,
+            message: 'search failed'
+        }
+    }
+}
 
 module.exports = {
-    sendMsg
+    sendMsg,
+    getAllMsg
 }

@@ -3,10 +3,10 @@ const url = require('url')
 const config = require('../config')
 var now = Date.now()
 
-let sequelize =  new Sequelize(config.database,config.username,config.password,{
-    host:config.host,
-    dialect:'mysql',
-    pool:{
+let sequelize = new Sequelize(config.database, config.username, config.password, {
+    host: config.host,
+    dialect: 'mysql',
+    pool: {
         max: 100,
         min: 0,
         idle: 30000
@@ -25,7 +25,7 @@ var User = sequelize.define('user', {
     password: Sequelize.STRING(11),
     account: Sequelize.STRING(11),
     gender: Sequelize.STRING(11),
-    createTime:Sequelize.STRING(11)
+    createTime: Sequelize.STRING(11)
 }, {
         timestamps: false
     });
@@ -49,66 +49,87 @@ var User = sequelize.define('user', {
 
 
 //获取status 1 的用户
- let getStatus1 = async (ctx,next) => {
-     try {
-         var [id,value] = url.parse(ctx.request.url).query.split('=')
-         let users = await User.findAll({
-             where: {
-                 id : value
-             }
-         })
-         users.forEach(function(element) {
-            element.org = decodeURIComponent(element.org)   
-         });
-         ctx.response.type = 'json'
-         ctx.response.body = {
-            status:200,
-            message:'成功',
-            data:users
+let getStatus1 = async (ctx, next) => {
+    try {
+        var [id, value] = url.parse(ctx.request.url).query.split('=')
+        let users = await User.findAll({
+            where: {
+                id: value
+            }
+        })
+        users.forEach(function (element) {
+            element.org = decodeURIComponent(element.org)
+        });
+        ctx.response.type = 'json'
+        ctx.response.body = {
+            status: 200,
+            message: '成功',
+            data: users
         }
-     }catch(e) {
-         console.log(e)
-         ctx.response.type = 'json'
-         ctx.response.body = {
-             status:400,
-             message:err || '获取数据失败',
-             data:[]
-         }
-     }
- }
- // 登录接口
- let login = async (ctx,next) => {
-     try {
-         let params = url.parse(ctx.request.url).query || ''
-         console.log(ctx.request.body)
+    } catch (e) {
+        console.log(e)
+        ctx.response.type = 'json'
+        ctx.response.body = {
+            status: 400,
+            message: err || '获取数据失败',
+            data: []
+        }
+    }
+}
+// 登录接口
+let login = async (ctx, next) => {
+    try {
+        let params = url.parse(ctx.request.url).query || ''
+        console.log(ctx.request.body)
         //  if (params) {
         //  }
-         let user = await User.find({
-             where: {
+        let user = await User.find({
+            where: {
                 ...ctx.request.body
-             }
-         })
-         console.log('user'+ user)
-         if (user!==null) {
+            }
+        })
+        console.log('user' + user)
+        if (user !== null) {
             ctx.response.type = 'json'
             ctx.response.body = {
-               status:200,
-               message:'成功',
-               data:user
-           }
-         }else {
-             throw new Error('没有查找到成员')
-         }
-     }catch(e) {
-         console.log(e)
-         ctx.response.type = 'json'
-         ctx.response.body = {
-             status:400,
-             message:'获取数据失败',
-             data:[]
-         }
-     }
- }
+                status: 200,
+                message: '成功',
+                data: user
+            }
+        } else {
+            let account = await User.find({
+                where: {
+                    account: ctx.request.body.account
+                }
+            })
+            if (account === null) {
+              let user = await  User.create({
+                    ...ctx.request.body,
+                    name:ctx.request.body.account
+                })
+                if (user!==null) {
+                    console.log('created: successfully')
+                    ctx.response.type = 'json'
+                    ctx.response.body = {
+                        status: 200,
+                        message: '成功',
+                        data: user
+                    }
+                }
+            } else {
+                throw new Error('没有查找到成员')
+            }
+        }
+    } catch (e) {
+        console.log(e)
+        ctx.response.type = 'json'
+        ctx.response.body = {
+            status: 400,
+            message: '忘记密码？ 或者换个账号直接登录',
+            data: []
+        }
+    }
+}
 module.exports = {
     getStatus1,
     login
