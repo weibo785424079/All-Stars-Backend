@@ -10,7 +10,8 @@ let sequelize =  new Sequelize(config.database,config.username,config.password,{
         max: 100,
         min: 0,
         idle: 30000
-    }
+    },
+    timezone: '+08:00'
 })
 
 var Msg = sequelize.define('msg', {

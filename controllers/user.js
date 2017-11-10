@@ -1,6 +1,12 @@
 const Sequelize = require('sequelize')
 const url = require('url')
 const config = require('../config')
+const checklogin = require('./../model/checklogin')
+const crypto = require('crypto')
+function cryptoPwd(password) {
+    var md5 = crypto.createHash('md5')
+    return md5.update(password).digest('hex')
+}
 var now = Date.now()
 
 let sequelize = new Sequelize(config.database, config.username, config.password, {
@@ -10,7 +16,8 @@ let sequelize = new Sequelize(config.database, config.username, config.password,
         max: 100,
         min: 0,
         idle: 30000
-    }
+    },
+    timezone: '+08:00'
 })
 
 var User = sequelize.define('user', {
@@ -25,71 +32,54 @@ var User = sequelize.define('user', {
     password: Sequelize.STRING(11),
     account: Sequelize.STRING(11),
     gender: Sequelize.STRING(11),
+    leftTimes: Sequelize.INTEGER,
     createTime: Sequelize.STRING(11)
 }, {
         timestamps: false
     });
 
 
-// (async function(){
-//     var person = await User.create({
-//         id:2,
-//         name:'six',
-//         level:2,
-//         status:1,
-//         org:'中国',
-//         password:'weibo0719'
-//     }).then(function(){
-//         console.log('created: '+JSON.stringify(person))       
-//     }).catch(e=>{
-//             console.log(e)
-//     })
-// })()
-
-
-
-//获取status 1 的用户
-let getStatus1 = async (ctx, next) => {
-    try {
-        var [id, value] = url.parse(ctx.request.url).query.split('=')
-        let users = await User.findAll({
-            where: {
-                id: value
-            }
-        })
-        users.forEach(function (element) {
-            element.org = decodeURIComponent(element.org)
-        });
-        ctx.response.type = 'json'
-        ctx.response.body = {
-            status: 200,
-            message: '成功',
-            data: users
+let getUserById = async (ctx, next) => {
+    if (!checklogin(ctx)) {
+        return
+    }
+    var [id, value] = url.parse(ctx.request.url).query.split('=')
+    let user = await User.findOne({
+        where: {
+            'id': value
         }
-    } catch (e) {
-        console.log(e)
-        ctx.response.type = 'json'
-        ctx.response.body = {
-            status: 400,
-            message: err || '获取数据失败',
-            data: []
-        }
+    })
+    ctx.response.type = 'json'
+    ctx.response.body = {
+        status: 200,
+        message: '成功',
+        data: user
     }
 }
+
 // 登录接口
 let login = async (ctx, next) => {
     try {
-        let params = url.parse(ctx.request.url).query || ''
-        console.log(ctx.request.body)
+        let params = {
+            ...ctx.request.body
+        }
+        var password = cryptoPwd(params.password)
+        params['password'] = password
+        console.log(params)
         //  if (params) {
         //  }
         let user = await User.find({
             where: {
-                ...ctx.request.body
+                ...params
             }
         })
         console.log('user' + user)
         if (user !== null) {
+            let session = ctx.session
+            session.isLogin = true
+            session.username = user.account
+            session.uid = user.id
+
             ctx.response.type = 'json'
             ctx.response.body = {
                 status: 200,
@@ -103,12 +93,18 @@ let login = async (ctx, next) => {
                 }
             })
             if (account === null) {
-              let user = await  User.create({
-                    ...ctx.request.body,
-                    name:ctx.request.body.account
+                let user = await User.create({
+                    ...params,
+                    name: ctx.request.body.account,
+                    leftTimes: 10
                 })
-                if (user!==null) {
+                if (user !== null) {
                     console.log('created: successfully')
+                    let session = ctx.session
+                    session.isLogin = true
+                    session.username = user.name
+                    session.uid = user.id
+                    session.password = user.password
                     ctx.response.type = 'json'
                     ctx.response.body = {
                         status: 200,
@@ -130,7 +126,45 @@ let login = async (ctx, next) => {
         }
     }
 }
-module.exports = {
-    getStatus1,
-    login
+
+const checkLogin = async (ctx, next) => {
+    if (ctx.session && ctx.session.username && ctx.session.uid) {
+        let user = await User.findOne({
+            where: {
+                id: ctx.session.uid
+            }
+        })
+        user = user.dataValues || {}
+        console.log(user)
+        ctx.response.type = 'json'
+        ctx.response.body = {
+            status: 200,
+            message: '登录成功！',
+            data: user
+        }
+    } else {
+        ctx.response.type = 'json'
+        ctx.response.body = {
+            status: 10001,
+            message: 'session,需要重新登录',
+            data: []
+        }
+    }
 }
+const logOut = async (ctx, next) => {
+    ctx.session = null
+    ctx.response.type = 'json'
+    ctx.response.body = {
+        status: 200,
+        message: 'session实效,退出成功！',
+        data: []
+    }
+}
+module.exports = {
+    User,
+    getUserById,
+    login,
+    checkLogin,
+    logOut
+}
+
