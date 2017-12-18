@@ -1,7 +1,7 @@
 {
-  "name": "black-eyes-backend",
+  "name": "All-Star-Backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "全明星动员后台",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
